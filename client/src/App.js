@@ -421,7 +421,7 @@ const ChatBot = () => {
   const scrollToBottom = () => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); };
   useEffect(scrollToBottom, [messages]);
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
     const userMsg = { id: Date.now(), sender: 'user', text: input, type: 'text' };
@@ -429,12 +429,22 @@ const ChatBot = () => {
     setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      const welcomeMsg = { id: Date.now() + 1, sender: 'bot', text: 'Selamat datang di SISEPAT.', type: 'text' };
-      const menuMsg = { id: Date.now() + 2, sender: 'bot', text: 'Silahkan pilih opsi menu:', type: 'buttons', options: ['PTSP ( Pusat Pelayanan Satu Pintu )', 'Info Umum'] };
-      setMessages(prev => [...prev, welcomeMsg, menuMsg]);
+    try {
+      const res = await fetch(`${API_BASE_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg.text }),
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: data.reply, type: 'text' }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1, sender: 'bot', type: 'text',
+        text: 'Maaf, terjadi gangguan koneksi ke server. Silakan coba lagi.'
+      }]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   const handleButtonClick = (option) => {
